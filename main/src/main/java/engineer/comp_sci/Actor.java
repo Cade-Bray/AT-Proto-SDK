@@ -7,16 +7,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Actor {
-    static private String did;
-    static private String id;
-    static private String handle;
-    static private String email;
-    static private boolean emailConfirmed;
-    static private boolean emailAuthFactor;
-    static private String accessJwt;
-    static private String refreshJwt;
-    static private boolean active;
-    static private String app_uri_base = "app.bsky";
+    private String did;
+    private String id;
+    private String handle;
+    private String email;
+    private boolean emailConfirmed;
+    private boolean emailAuthFactor;
+    private boolean active;
+    private String app_uri_base = "app.bsky";
+    private Server server;
 
     /**
      * Constructor for the Actor class. This constructor will create a session for the user. The user will need to
@@ -60,9 +59,7 @@ public class Actor {
         // This will allow for the Actor object to be created without the need for a password.
         // Need to make a createSession method that will allow for the creation of an Actor object with only the
         // accessJwt and refreshJwt.
-        Actor.handle = handle;
-        Actor.accessJwt = accessJwt;
-        Actor.refreshJwt = refreshJwt;
+        this.handle = handle;
     }
 
     /**
@@ -71,7 +68,7 @@ public class Actor {
      *
      * @param session HttpResponse The response from the createSession method.
      */
-    private static void parseCreateSession200(HttpResponse<String> session) {
+    private void parseCreateSession200(HttpResponse<String> session) {
         String session_body = session.body();
 
         //Parse did
@@ -100,7 +97,7 @@ public class Actor {
         if (matcher.find()) {
             String phandle = matcher.group(0);
             phandle = phandle.substring(10, phandle.length() - 1);
-            Actor.handle = phandle;
+            this.handle = phandle;
         }
 
 
@@ -110,7 +107,7 @@ public class Actor {
         if (matcher.find()) {
             String pemail = matcher.group(0);
             pemail = pemail.substring(9, pemail.length() - 1);
-            Actor.email = pemail;
+            this.email = pemail;
         }
 
         //Parse emailConfirmed
@@ -119,7 +116,7 @@ public class Actor {
         if (matcher.find()) {
             String emailConfirmed = matcher.group(0);
             emailConfirmed = emailConfirmed.substring(17, emailConfirmed.length() - 1);
-            Actor.emailConfirmed = Boolean.parseBoolean(emailConfirmed);
+            this.emailConfirmed = Boolean.parseBoolean(emailConfirmed);
         }
 
         //Parse emailAuthFactor
@@ -128,26 +125,28 @@ public class Actor {
         if (matcher.find()) {
             String emailAuthFactor = matcher.group(0);
             emailAuthFactor = emailAuthFactor.substring(18, emailAuthFactor.length() - 1);
-            Actor.emailAuthFactor = Boolean.parseBoolean(emailAuthFactor);
+            this.emailAuthFactor = Boolean.parseBoolean(emailAuthFactor);
         }
 
         //Parse accessJwt
+        String accessJwt = "";
         regex = Pattern.compile("\"accessJwt\":\"\\S*?\"");
         matcher = regex.matcher(session_body);
         if (matcher.find()) {
-            String accessJwt = matcher.group(0);
+            accessJwt = matcher.group(0);
             accessJwt = accessJwt.substring(13, accessJwt.length() - 1);
-            Actor.accessJwt = accessJwt;
         }
 
         //Parse refreshJwt
+        String refreshJwt = "";
         regex = Pattern.compile("\"refreshJwt\":\"\\S*?\"");
         matcher = regex.matcher(session_body);
         if (matcher.find()) {
-            String refreshJwt = matcher.group(0);
+            refreshJwt = matcher.group(0);
             refreshJwt = refreshJwt.substring(14, refreshJwt.length() - 1);
-            Actor.refreshJwt = refreshJwt;
         }
+
+        server = new Server(refreshJwt, accessJwt);
 
         //Parse active
         regex = Pattern.compile("\"active\":\\S*?}");
@@ -155,7 +154,7 @@ public class Actor {
         if (matcher.find()) {
             String active = matcher.group(0);
             active = active.substring(9, active.length() - 1);
-            Actor.active = Boolean.parseBoolean(active);
+            this.active = Boolean.parseBoolean(active);
         }
     }
 
@@ -164,7 +163,7 @@ public class Actor {
      *
      * @return String The did of the user.
      */
-    public static String getApp_uri_base() {
+    public String getApp_uri_base() {
         return app_uri_base;
     }
 
@@ -174,8 +173,8 @@ public class Actor {
      *
      * @param app_uri_base String The app_uri_base of the user.
      */
-    public static void setApp_uri_base(String app_uri_base) {
-        Actor.app_uri_base = app_uri_base;
+    public void setApp_uri_base(String app_uri_base) {
+        this.app_uri_base = app_uri_base;
     }
 
     // **** GET REQUESTS BELOW ****
@@ -189,7 +188,7 @@ public class Actor {
      * @return Returns an array of preferences for the authenticated user. Check API documentation for what the JSON
      *          will include.
      */
-    public static HttpResponse<String> getPreferences() {
+    public HttpResponse<String> getPreferences() {
         //TODO requires auth token
         return null;
     }
@@ -202,7 +201,7 @@ public class Actor {
      * @return An HttpResponse object containing the profile information of the specified actor.
      *         The response body is a JSON string.
      */
-   public static HttpResponse<String> getProfile(String actor) {
+   public HttpResponse<String> getProfile(String actor) {
        String uri_string = app_uri_base + ".actor.getProfile?actor=" + actor;
        return HTTP.GET(false, uri_string);
    }
@@ -216,7 +215,7 @@ public class Actor {
      * @return An HttpResponse object containing the profile information of the specified actors.
      *         The response body is a JSON string.
      */
-   public static HttpResponse<String> getProfiles(String[] actors){
+   public HttpResponse<String> getProfiles(String[] actors){
        StringBuilder uri_string = new StringBuilder(app_uri_base + ".actor.getProfiles?");
 
        for (String actor : actors){
@@ -238,7 +237,7 @@ public class Actor {
      * @param limit is the integer of how many returns you want from the search. Must be 1 => and <= 100. Suggested 10.
      * @return An HTTP Response. The information is in the body as a string JSON. Refer to API doc link for specifics.
      */
-    public static HttpResponse<String> searchActorsTypeahead(String query, int limit){
+    public HttpResponse<String> searchActorsTypeahead(String query, int limit){
 
         if (limit > 100 || limit < 1) {
             throw new IndexOutOfBoundsException("Limit needs to be within range >= 1 and <= 100");
@@ -258,7 +257,7 @@ public class Actor {
      * @param cursor TODO define cursor in parameter context
      * @return An HTTP Response. The information is in the body as a string JSON. Refer to API doc link for specifics.
      */
-    public static HttpResponse<String> searchActors(String query, int limit, String cursor){
+    public HttpResponse<String> searchActors(String query, int limit, String cursor){
         String uri_sb = app_uri_base + ".actor.searchActors?" + "q=" + query + "&limit=" + limit + "&cursor=" + cursor;
 
         // Checking limit range.
@@ -287,7 +286,7 @@ public class Actor {
      *
      * @return HttpResponse<String> object containing the response from the server.
      */
-    public static HttpResponse<String> createSession(String handle, String password) {
+    public HttpResponse<String> createSession(String handle, String password) {
         String uri_string = "com.atproto.server.createSession";
         String body = "{\n" +
                 "  \"identifier\": \"" + handle + "\",\n" +
@@ -311,7 +310,7 @@ public class Actor {
      *
      * @return HttpResponse<String> object containing the response from the server.
      */
-    public static HttpResponse<String> createSession(String handle, String password, String authFactorToken) {
+    public HttpResponse<String> createSession(String handle, String password, String authFactorToken) {
         String uri_string = "com.atproto.server.createSession";
         String body = "{\n" +
                 "  \"identifier\": \"" + handle + "\",\n" +
@@ -331,7 +330,7 @@ public class Actor {
      * @param cursor TODO Create definition for cursor.
      * @return An HttpResponse object containing the array of suggested actors.
      */
-    public static HttpResponse<String> getSuggestions(int limit, String cursor){
+    public HttpResponse<String> getSuggestions(int limit, String cursor){
 
         return null;
     }
@@ -348,7 +347,7 @@ public class Actor {
      *
      * @return An HttpResponse object containing the response from the server.
      */
-    public static HttpResponse<String> createRecord(String text){
+    public HttpResponse<String> createRecord(String text){
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         String formattedDateTime = ZonedDateTime.now().format(formatter);
         String uri_string = "com.atproto.repo.createRecord";
@@ -362,7 +361,7 @@ public class Actor {
                 // TODO: Currently only supports English. Allow for enumeration.
                 "\"langs\": [\"en\"]}}";
 
-        return HTTP.POST(true ,uri_string, body, accessJwt);
+        return HTTP.POST(true ,uri_string, body, server.getAccessJwt());
     }
 
    // **** END OF POST REQUESTS

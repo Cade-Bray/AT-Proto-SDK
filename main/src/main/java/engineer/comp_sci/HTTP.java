@@ -96,12 +96,22 @@ public class HTTP {
     public static HttpResponse<String> POST(boolean isPrivate, String uri_string, String body, String jwt) {
         try {
             HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(new URI(uriConstructor(isPrivate, uri_string)))
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer " + jwt)
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build();
+            HttpRequest request;
+
+            if (body.isEmpty()){
+                request = HttpRequest.newBuilder()
+                        .uri(new URI(uriConstructor(isPrivate, uri_string)))
+                        .header("Authorization", "Bearer " + jwt)
+                        .POST(HttpRequest.BodyPublishers.noBody())
+                        .build();
+            } else {
+                request = HttpRequest.newBuilder()
+                        .uri(new URI(uriConstructor(isPrivate, uri_string)))
+                        .header("Content-Type", "application/json")
+                        .header("Authorization", "Bearer " + jwt)
+                        .POST(HttpRequest.BodyPublishers.ofString(body))
+                        .build();
+            }
 
             //TODO add a check for a valid response and throw if a bad response is received.
 
