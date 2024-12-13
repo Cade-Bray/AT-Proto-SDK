@@ -2,7 +2,7 @@
 name: Wiki Request
 about: Wiki Requests are restricted to contributors. Use this issue template to request wiki additions, updates, or deletions.
 title: 'Wiki Request: {INSERT}'
-labels: 'Documentation'
+labels: 'documentation'
 assignees: ''
 
 ---
