@@ -1,0 +1,18 @@
+---
+name: Request JUnit testing
+about: If you need clarity on your issue and need to ensure you're on track please use this form to request a JUnit test to be built to compare your work against.
+title: 'JUnit Request: {INSERT}'
+labels: 'testing'
+assignees: ''
+
+---
+Please note that you do not need to have JUnit testing built for you if you feel you can include a fully encompasses Junit test yourself to be reviewed with your issue.
+
+**Issue or Pull Request link for testing needed**
+[Issue](INSERT LINK)
+
+**Describe the tests you believe should be included**
+A clear and concise description of what you feel needs to be included in testing. This is optional if you're unsure.
+
+**Screenshots or links**
+If applicable, add screenshots or links to help explain your problem.
