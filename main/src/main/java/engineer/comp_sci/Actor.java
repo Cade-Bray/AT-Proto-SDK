@@ -69,6 +69,7 @@ public class Actor {
      * @param session HttpResponse The response from the createSession method.
      */
     private void parseCreateSession200(HttpResponse<String> session) {
+        // TODO: Migrate this to a JSON parser. See issue #2
         String session_body = session.body();
 
         //Parse did
