@@ -190,7 +190,7 @@ public class Actor {
      *          will include.
      */
     public HttpResponse<String> getPreferences() {
-        //TODO requires auth token
+        //TODO requires auth token. See issue #4
         return null;
     }
 
