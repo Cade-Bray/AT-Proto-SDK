@@ -252,6 +252,7 @@ public class Actor {
     /**
      * Find actors (profiles) matching search criteria. Does not require auth.
      * <a href="https://docs.bsky.app/docs/api/app-bsky-actor-search-actors">API Documentation Link</a>
+     * TODO this is in-progress please see issue #6
      *
      * @param query is a string of what to search on blue sky.
      * @param limit is the integer of how many returns you want from the search. Must be 1 => and <= 100. Suggested 10.
