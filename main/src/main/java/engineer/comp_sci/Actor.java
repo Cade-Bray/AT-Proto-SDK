@@ -15,7 +15,7 @@ public class Actor {
     private boolean emailAuthFactor;
     private boolean active;
     private String app_uri_base = "app.bsky";
-    private Server server;
+    public Server server;
 
     /**
      * Constructor for the Actor class. This constructor will create a session for the user. The user will need to
@@ -83,13 +83,13 @@ public class Actor {
             id = matcher.group(0);
         }
 
-        //Parse didDoc TODO
+        //Parse didDoc TODO See issue #3
 
-        //Parse alsoKnownAs TODO
+        //Parse alsoKnownAs TODO See issue #3
 
-        //Parse verificationMethod TODO
+        //Parse verificationMethod TODO See issue #3
 
-        //Parse service TODO
+        //Parse service TODO See issue #3
 
         //Parse handle
         regex = Pattern.compile("\"handle\":\"\\S*?\"");
@@ -369,6 +369,6 @@ public class Actor {
    // **** Main Testing ****
     public static void main(String[] args) {
         Actor actor = new Actor(args[0], args[1]);
-
+        actor.server.refreshSession();
     }
 }
