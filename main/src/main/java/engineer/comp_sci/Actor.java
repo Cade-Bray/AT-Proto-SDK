@@ -18,6 +18,7 @@ public class Actor {
      * @param password String The password of the user.
      */
     public Actor(String handle, String password) {
+        server = new Server();
         HttpResponse<String> session = server.createSession(handle, password);
 
         if (session.statusCode() == 401) {
@@ -53,9 +54,10 @@ public class Actor {
         // This will allow for the Actor object to be created without the need for a password.
         // Need to make a createSession method that will allow for the creation of an Actor object with only the
         // accessJwt and refreshJwt.
-        this.session_details.put("handle", handle);
-        this.session_details.put("accessJwt", accessJwt);
-        this.session_details.put("refreshJwt", refreshJwt);
+        server = new Server();
+        session_details.put("handle", handle);
+        session_details.put("accessJwt", accessJwt);
+        session_details.put("refreshJwt", refreshJwt);
     }
 
     /**
@@ -215,11 +217,28 @@ public class Actor {
         return HTTP.POST(true ,uri_string, body, server.getAccessJwt());
     }
 
+    /**
+     * This will delete a post from the user's feed. It just requires the rkey of the post to be deleted.
+     *
+     * @see <a href="https://docs.bsky.app/docs/api/com-atproto-repo-delete-record">API Documentation Link</a>
+     * @param rkey The rkey of the post to be deleted.
+     * @return An HttpResponse object containing the response from the server.
+     */
+    public HttpResponse<String> deleteRecord(String rkey){
+        String uri_string = "com.atproto.repo.deleteRecord";
+        String body = "{\n" +
+                "\"collection\":\"" + app_uri_base + ".feed.post\"," +
+                "\"repo\":\"" + session_details.get("did") + "\"," +
+                "\"rkey\":\"" + rkey + "\"}";
+
+        return HTTP.POST(true ,uri_string, body, server.getAccessJwt());
+    }
+
    // **** END OF POST REQUESTS
 
    // **** Main Testing ****
     public static void main(String[] args) {
         Actor actor = new Actor(args[0], args[1]);
-        actor.server.refreshSession();
+        actor.deleteRecord("");
     }
 }

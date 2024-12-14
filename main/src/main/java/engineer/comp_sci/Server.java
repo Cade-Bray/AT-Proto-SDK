@@ -8,6 +8,10 @@ public class Server {
     static private String accessJwt;
     static public boolean active = false;
 
+    public Server(){
+        active = false;
+    }
+
     public Server(String rJwt, String aJwt){
         setRefreshJwt(rJwt);
         setAccessJwt(aJwt);

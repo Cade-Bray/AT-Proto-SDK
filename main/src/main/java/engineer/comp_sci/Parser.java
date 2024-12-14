@@ -94,4 +94,37 @@ public class Parser {
 
         return parsed;
     }
+
+    /**
+     * Parses the response from the deleteRecord method with a status code of 200.
+     *
+     * @param session HttpResponse The response from the createSession method.\
+     * @return HashMap<String, Object> The parsed response.
+     * @see Actor#deleteRecord(String)
+     */
+    public static HashMap<String, Object> deleteRecord200(HttpResponse<String> session){
+        HashMap<String, Object> response = new HashMap<>();
+        HashMap<String, Object> commit = new HashMap<>();
+        String session_body = session.body();
+
+        //Parse cid
+        Pattern regex = Pattern.compile("\"cid\":\"\\S*?\"");
+        Matcher matcher = regex.matcher(session_body);
+        if (matcher.find()) {
+            String cid = matcher.group(0);
+            cid = cid.substring(7, cid.length() - 1);
+            commit.put("cid", cid);
+        }
+
+        //Parse rev
+        regex = Pattern.compile("\"rev\":\"\\S*?\"");
+        matcher = regex.matcher(session_body);
+        if (matcher.find()) {
+            String rev = matcher.group(0);
+            rev = rev.substring(7, rev.length() - 1);
+            commit.put("rev", rev);
+        }
+        response.put("commit", commit);
+        return response;
+    }
 }
