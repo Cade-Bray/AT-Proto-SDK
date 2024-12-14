@@ -39,6 +39,30 @@ public class Server {
         return HTTP.POST(true, uri_string, body);
     }
 
+    /**
+     * Creates a session for the user. This is the first step in the login process. The user will need to provide their
+     * handle and password. The response will contain an access token and a refresh token. The access token is used to
+     * authenticate the user for the current session. The refresh token is used to get a new access token when the current
+     * one expires.
+     * <p>
+     * If the account has 2FA enabled, the user will need to provide the authFactorToken as well.
+     * If the 2FA is provided after the first request, the user will need to provide the authFactorToken in the second
+     * request.
+     * <p>
+     * <a href="https://docs.bsky.app/docs/api/com-atproto-server-create-session">API Documentation Link</a>
+     *
+     * @return HttpResponse<String> object containing the response from the server.
+     */
+    public HttpResponse<String> createSession(String handle, String password) {
+        String uri_string = "com.atproto.server.createSession";
+        String body = "{\n" +
+                "  \"identifier\": \"" + handle + "\",\n" +
+                "  \"password\": \"" + password + "\"\n" +
+                "}";
+
+        return HTTP.POST(true, uri_string, body);
+    }
+
     public String getApp_uri_base() {
         return app_uri_base;
     }
