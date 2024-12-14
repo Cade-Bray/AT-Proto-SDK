@@ -2,18 +2,13 @@ package engineer.comp_sci;
 import java.net.http.HttpResponse;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Scanner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import static java.awt.SystemColor.info;
 
 public class Actor {
-    private String did;
-    private String id;
-    private String handle;
-    private String email;
-    private boolean emailConfirmed;
-    private boolean emailAuthFactor;
-    private boolean active;
+    private HashMap<String, Object> session = new HashMap<>();
     private String app_uri_base = "app.bsky";
     public Server server;
 
@@ -34,14 +29,15 @@ public class Actor {
             System.out.println("2FA is required. Please enter your 2FA token: ");
             Scanner scanner = new Scanner(System.in);
             session = createSession(handle, password, scanner.nextLine());
-            parseCreateSession200(session);
+            this.session = Parser.parseCreateSession200(session);
+            scanner.close();
 
         } else if (session.statusCode() == 200) {
             // 2FA is not required. Parse the response.
-            parseCreateSession200(session);
-
+            this.session = Parser.parseCreateSession200(session);
         }
 
+        server = new Server((String) this.session.get("refreshJwt"), (String) this.session.get("accessJwt"));
     }
 
     /**
@@ -59,104 +55,9 @@ public class Actor {
         // This will allow for the Actor object to be created without the need for a password.
         // Need to make a createSession method that will allow for the creation of an Actor object with only the
         // accessJwt and refreshJwt.
-        this.handle = handle;
-    }
-
-    /**
-     * Parses the response from the createSession method. This method will set the class variables to the values
-     * returned from the server. Only provide a response from the createSession method that has a status code of 200.
-     *
-     * @param session HttpResponse The response from the createSession method.
-     */
-    private void parseCreateSession200(HttpResponse<String> session) {
-        // TODO: Migrate this to a JSON parser. See issue #2
-        String session_body = session.body();
-
-        //Parse did
-        Pattern regex = Pattern.compile("did:plc:\\w*");
-        Matcher matcher = regex.matcher(session_body);
-        if (matcher.find()) {
-            did = matcher.group(0);
-        }
-
-        //Parse id
-        if (matcher.find()) {
-            id = matcher.group(0);
-        }
-
-        //Parse didDoc TODO See issue #3
-
-        //Parse alsoKnownAs TODO See issue #3
-
-        //Parse verificationMethod TODO See issue #3
-
-        //Parse service TODO See issue #3
-
-        //Parse handle
-        regex = Pattern.compile("\"handle\":\"\\S*?\"");
-        matcher = regex.matcher(session_body);
-        if (matcher.find()) {
-            String phandle = matcher.group(0);
-            phandle = phandle.substring(10, phandle.length() - 1);
-            this.handle = phandle;
-        }
-
-
-        //Parse email
-        regex = Pattern.compile("\"email\":\"\\S*?\"");
-        matcher = regex.matcher(session_body);
-        if (matcher.find()) {
-            String pemail = matcher.group(0);
-            pemail = pemail.substring(9, pemail.length() - 1);
-            this.email = pemail;
-        }
-
-        //Parse emailConfirmed
-        regex = Pattern.compile("\"emailConfirmed\":\\S*?,");
-        matcher = regex.matcher(session_body);
-        if (matcher.find()) {
-            String emailConfirmed = matcher.group(0);
-            emailConfirmed = emailConfirmed.substring(17, emailConfirmed.length() - 1);
-            this.emailConfirmed = Boolean.parseBoolean(emailConfirmed);
-        }
-
-        //Parse emailAuthFactor
-        regex = Pattern.compile("\"emailAuthFactor\":\\S*?,");
-        matcher = regex.matcher(session_body);
-        if (matcher.find()) {
-            String emailAuthFactor = matcher.group(0);
-            emailAuthFactor = emailAuthFactor.substring(18, emailAuthFactor.length() - 1);
-            this.emailAuthFactor = Boolean.parseBoolean(emailAuthFactor);
-        }
-
-        //Parse accessJwt
-        String accessJwt = "";
-        regex = Pattern.compile("\"accessJwt\":\"\\S*?\"");
-        matcher = regex.matcher(session_body);
-        if (matcher.find()) {
-            accessJwt = matcher.group(0);
-            accessJwt = accessJwt.substring(13, accessJwt.length() - 1);
-        }
-
-        //Parse refreshJwt
-        String refreshJwt = "";
-        regex = Pattern.compile("\"refreshJwt\":\"\\S*?\"");
-        matcher = regex.matcher(session_body);
-        if (matcher.find()) {
-            refreshJwt = matcher.group(0);
-            refreshJwt = refreshJwt.substring(14, refreshJwt.length() - 1);
-        }
-
-        server = new Server(refreshJwt, accessJwt);
-
-        //Parse active
-        regex = Pattern.compile("\"active\":\\S*?}");
-        matcher = regex.matcher(session_body);
-        if (matcher.find()) {
-            String active = matcher.group(0);
-            active = active.substring(9, active.length() - 1);
-            this.active = Boolean.parseBoolean(active);
-        }
+        this.session.put("handle", handle);
+        this.session.put("accessJwt", accessJwt);
+        this.session.put("refreshJwt", refreshJwt);
     }
 
     /**
@@ -354,7 +255,7 @@ public class Actor {
         String formattedDateTime = ZonedDateTime.now().format(formatter);
         String uri_string = "com.atproto.repo.createRecord";
         String body = "{\n" +
-                "\"repo\": \"" + did + "\"," +
+                "\"repo\": \"" + session.get("did") + "\"," +
                 "\"collection\": \"" + app_uri_base + ".feed.post\"," +
                 "\"record\": {" +
                 "\"$type\": \"" + app_uri_base + ".feed.post\"," +
