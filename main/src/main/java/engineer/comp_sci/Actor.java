@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Scanner;
 
 public class Actor {
-    private HashMap<String, Object> session = new HashMap<>();
+    private HashMap<String, Object> session_details = new HashMap<>();
     private String app_uri_base = "app.bsky";
     public Server server;
 
@@ -26,16 +26,16 @@ public class Actor {
             // this point.
             System.out.println("2FA is required. Please enter your 2FA token: ");
             Scanner scanner = new Scanner(System.in);
-            session = createSession(handle, password, scanner.nextLine());
-            this.session = Parser.createSession200(session);
+            session = server.createSession(handle, password, scanner.nextLine());
+            this.session_details = Parser.createSession200(session);
             scanner.close();
 
         } else if (session.statusCode() == 200) {
             // 2FA is not required. Parse the response.
-            this.session = Parser.createSession200(session);
+            this.session_details = Parser.createSession200(session);
         }
 
-        server = new Server((String) this.session.get("refreshJwt"), (String) this.session.get("accessJwt"));
+        server = new Server((String) this.session_details.get("refreshJwt"), (String) this.session_details.get("accessJwt"));
     }
 
     /**
@@ -53,9 +53,9 @@ public class Actor {
         // This will allow for the Actor object to be created without the need for a password.
         // Need to make a createSession method that will allow for the creation of an Actor object with only the
         // accessJwt and refreshJwt.
-        this.session.put("handle", handle);
-        this.session.put("accessJwt", accessJwt);
-        this.session.put("refreshJwt", refreshJwt);
+        this.session_details.put("handle", handle);
+        this.session_details.put("accessJwt", accessJwt);
+        this.session_details.put("refreshJwt", refreshJwt);
     }
 
     /**
@@ -197,30 +197,7 @@ public class Actor {
         return HTTP.POST(true, uri_string, body);
     }
 
-    /**
-     * Creates a session for the user. This is the first step in the login process. The user will need to provide their
-     * handle and password. The response will contain an access token and a refresh token. The access token is used to
-     * authenticate the user for the current session. The refresh token is used to get a new access token when the current
-     * one expires.
-     * <p>
-     * If the account has 2FA enabled, the user will need to provide the authFactorToken as well.
-     * If the 2FA is provided after the first request, the user will need to provide the authFactorToken in the second
-     * request.
-     * <p>
-     * <a href="https://docs.bsky.app/docs/api/com-atproto-server-create-session">API Documentation Link</a>
-     *
-     * @return HttpResponse<String> object containing the response from the server.
-     */
-    public HttpResponse<String> createSession(String handle, String password, String authFactorToken) {
-        String uri_string = "com.atproto.server.createSession";
-        String body = "{\n" +
-                "  \"identifier\": \"" + handle + "\",\n" +
-                "  \"password\": \"" + password + "\",\n" +
-                "  \"authFactorToken\": \"" + authFactorToken + "\"\n" +
-                "}";
 
-        return HTTP.POST(true, uri_string, body);
-    }
 
     /**
      * Get a list of suggested actors. Expected use is discovery of accounts to follow during new account onboarding.
@@ -253,7 +230,7 @@ public class Actor {
         String formattedDateTime = ZonedDateTime.now().format(formatter);
         String uri_string = "com.atproto.repo.createRecord";
         String body = "{\n" +
-                "\"repo\": \"" + session.get("did") + "\"," +
+                "\"repo\": \"" + session_details.get("did") + "\"," +
                 "\"collection\": \"" + app_uri_base + ".feed.post\"," +
                 "\"record\": {" +
                 "\"$type\": \"" + app_uri_base + ".feed.post\"," +
