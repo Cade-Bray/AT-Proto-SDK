@@ -5,8 +5,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Scanner;
 
-import static java.awt.SystemColor.info;
-
 public class Actor {
     private HashMap<String, Object> session = new HashMap<>();
     private String app_uri_base = "app.bsky";
@@ -29,12 +27,12 @@ public class Actor {
             System.out.println("2FA is required. Please enter your 2FA token: ");
             Scanner scanner = new Scanner(System.in);
             session = createSession(handle, password, scanner.nextLine());
-            this.session = Parser.parseCreateSession200(session);
+            this.session = Parser.createSession200(session);
             scanner.close();
 
         } else if (session.statusCode() == 200) {
             // 2FA is not required. Parse the response.
-            this.session = Parser.parseCreateSession200(session);
+            this.session = Parser.createSession200(session);
         }
 
         server = new Server((String) this.session.get("refreshJwt"), (String) this.session.get("accessJwt"));

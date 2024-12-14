@@ -12,7 +12,7 @@ public class Parser {
      *
      * @param session HttpResponse The response from the createSession method.
      */
-    public static HashMap<String, Object> parseCreateSession200(HttpResponse<String> session) {
+    public static HashMap<String, Object> createSession200(HttpResponse<String> session) {
         HashMap<String, Object> parsed = new HashMap<>();
         String session_body = session.body();
 
@@ -23,18 +23,7 @@ public class Parser {
             parsed.put("did", matcher.group(0));
         }
 
-        //Parse id
-        if (matcher.find()) {
-            parsed.put("id", matcher.group(0));
-        }
-
         //Parse didDoc TODO See issue #3
-
-        //Parse alsoKnownAs TODO See issue #3
-
-        //Parse verificationMethod TODO See issue #3
-
-        //Parse service TODO See issue #3
 
         //Parse handle
         regex = Pattern.compile("\"handle\":\"\\S*?\"");
@@ -74,7 +63,7 @@ public class Parser {
         }
 
         //Parse accessJwt
-        String accessJwt = "";
+        String accessJwt;
         regex = Pattern.compile("\"accessJwt\":\"\\S*?\"");
         matcher = regex.matcher(session_body);
         if (matcher.find()) {
@@ -84,7 +73,7 @@ public class Parser {
         }
 
         //Parse refreshJwt
-        String refreshJwt = "";
+        String refreshJwt;
         regex = Pattern.compile("\"refreshJwt\":\"\\S*?\"");
         matcher = regex.matcher(session_body);
         if (matcher.find()) {
@@ -95,12 +84,12 @@ public class Parser {
 
 
         //Parse active
-        regex = Pattern.compile("\"active\":\\S*?}");
+        regex = Pattern.compile("\"active\":\\S*?\\s}");
         matcher = regex.matcher(session_body);
         if (matcher.find()) {
             String active = matcher.group(0);
             active = active.substring(9, active.length() - 1);
-            parsed.put("active", Boolean.parseBoolean(active));
+            parsed.put("active", Boolean.parseBoolean(active.trim()));
         }
 
         return parsed;
