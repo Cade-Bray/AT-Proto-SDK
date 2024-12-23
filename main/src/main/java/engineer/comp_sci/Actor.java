@@ -122,7 +122,9 @@ public class Actor {
        HttpResponse<String> response = HTTP.GET(false, uri_string);
        ObjectMapper mapper = new ObjectMapper();
        assert response != null;
-       return (ObjectNode) mapper.readTree(response.body());
+       ObjectNode profile = (ObjectNode) mapper.readTree(response.body());
+       profile.put("status", response.statusCode());
+       return profile;
    }
 
     /**
@@ -135,7 +137,7 @@ public class Actor {
      *         The response body is a JSON string.
      */
    @SuppressWarnings("unused")
-    public HttpResponse<String> getProfiles(String[] actors){
+    public ObjectNode getProfiles(String[] actors) throws JsonProcessingException {
        StringBuilder uri_string = new StringBuilder(app_uri_base + ".actor.getProfiles?");
 
        for (String actor : actors){
@@ -145,7 +147,13 @@ public class Actor {
            }
        }
 
-       return HTTP.GET(false, String.valueOf(uri_string));
+       HttpResponse<String> response = HTTP.GET(false, String.valueOf(uri_string));
+       ObjectMapper mapper = new ObjectMapper();
+       assert response != null;
+       ObjectNode profiles = (ObjectNode) mapper.readTree(response.body());
+       profiles.put("status", response.statusCode());
+
+       return profiles;
    }
 
     /**
@@ -335,7 +343,7 @@ public class Actor {
    // **** Main Testing ****
     public static void main(String[] args) throws IOException {
         Actor actor = new Actor(args[0], args[1]);
-        HashMap<String, Object> r = Parser.uploadBlob200(actor.uploadBlob(args[2]));
-        actor.createRecord("This is a test post!", args[2], "Testing!");
+        ObjectNode profile = actor.getProfile("cade.comp-sci.engineer");
+        System.out.println(profile.get("displayName"));
     }
 }
