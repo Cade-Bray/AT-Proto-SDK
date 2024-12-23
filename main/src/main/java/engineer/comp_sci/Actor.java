@@ -8,15 +8,17 @@ import java.net.http.HttpResponse;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Scanner;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Actor {
-    private HashMap<String, Object> session_details = new HashMap<>();
+    private static final Logger logger = LogManager.getLogger(Actor.class);
+    private ObjectNode session_details = new ObjectMapper().createObjectNode();
     private String app_uri_base = "app.bsky";
     private String[] languages = {"en"};
     public Server server;
@@ -30,47 +32,37 @@ public class Actor {
      */
     public Actor(String handle, String password) {
         server = new Server();
+        ObjectMapper mapper = new ObjectMapper();
         HttpResponse<String> session = server.createSession(handle, password);
 
         if (session.statusCode() == 401) {
             // 2FA is required. Prompt user for 2FA token.
             // I'd like to find an alternative to using System.in for user input. I'm not sure what that looks like at
             // this point.
+            logger.info("2FA is required. Acquiring 2FA token from user.");
             System.out.println("2FA is required. Please enter your 2FA token: ");
             Scanner scanner = new Scanner(System.in);
+            // TODO there is no error handling for wrong 2FA token.
             session = server.createSession(handle, password, scanner.nextLine());
 
-            this.session_details = Parser.createSession200(session);
+            // Parse the response.
+            try {
+                this.session_details = (ObjectNode) mapper.readTree(session.body());
+            } catch (JsonProcessingException e) {
+                logger.error("2FA required: Error parsing the response from the server.");
+            }
             scanner.close();
 
         } else if (session.statusCode() == 200) {
             // 2FA is not required. Parse the response.
-            this.session_details = Parser.createSession200(session);
+            try {
+                this.session_details = (ObjectNode) mapper.readTree(session.body());
+            } catch (JsonProcessingException e) {
+                logger.error("No 2FA: Error parsing the response from the server.");
+            }
         }
 
-        server = new Server((String) this.session_details.get("refreshJwt"), (String) this.session_details.get("accessJwt"));
-    }
-
-    /**
-     * UNDER CONSTRUCTION - DO NOT USE
-     * <p>
-     * Constructor for the Actor class. This constructor will create a session for the user. The user will need to
-     * provide their handle and password. The server response could require 2FA in which case manual input is required.
-     *
-     * @param handle String The handle of the user.
-     * @param accessJwt String The accessJwt of the user.
-     * @param refreshJwt String The refreshJwt of the user.
-     */
-    @SuppressWarnings("unused")
-    public Actor(String handle, String accessJwt, String refreshJwt) {
-        //TODO: Allow for the creation of an Actor object with only the accessJwt and refreshJwt.
-        // This will allow for the Actor object to be created without the need for a password.
-        // Need to make a createSession method that will allow for the creation of an Actor object with only the
-        // accessJwt and refreshJwt.
-        server = new Server();
-        session_details.put("handle", handle);
-        session_details.put("accessJwt", accessJwt);
-        session_details.put("refreshJwt", refreshJwt);
+        server = new Server(this.session_details.get("refreshJwt").asText(), this.session_details.get("accessJwt").asText());
     }
 
     /**
@@ -264,7 +256,7 @@ public class Actor {
         ObjectNode record = mapper.createObjectNode();
 
         // Set the values for the JSON object.
-        record.put("repo", (String) session_details.get("did"));
+        record.put("repo", session_details.get("did").asText());
         record.put("collection", app_uri_base + ".feed.post");
         record.set("record", mapper.createObjectNode()
                 .put("$type", app_uri_base + ".feed.post")
@@ -320,7 +312,7 @@ public class Actor {
         ObjectNode record = mapper.createObjectNode();
 
         // Set the values for the JSON object.
-        record.put("repo", (String) session_details.get("did"));
+        record.put("repo", session_details.get("did").asText());
         record.put("collection", app_uri_base + ".feed.post");
         record.set("record", mapper.createObjectNode()
                 .put("$type", app_uri_base + ".feed.post")
@@ -358,6 +350,7 @@ public class Actor {
      * @param rkey The rkey of the post to be deleted.
      * @return An HttpResponse object containing the response from the server.
      */
+    @SuppressWarnings("unused")
     public HttpResponse<String> deleteRecord(String rkey) throws JsonProcessingException {
         String uri_string = "com.atproto.repo.deleteRecord";
 
@@ -365,7 +358,7 @@ public class Actor {
         ObjectNode record = mapper.createObjectNode();
 
         record.put("collection", app_uri_base + ".feed.post");
-        record.put("repo", (String) session_details.get("did"));
+        record.put("repo", session_details.get("did").asText());
         record.put("rkey", rkey);
 
         return HTTP.POST(true ,uri_string, mapper.writeValueAsString(record), server.getAccessJwt());
@@ -386,8 +379,7 @@ public class Actor {
 
             imageStream.close();
         } catch (Exception e) {
-            //TODO: Add logging
-            e.printStackTrace();
+            logger.error("Error uploading image: {}", e.getMessage());
         }
 
         HttpResponse<String> response = HTTP.POST(true ,uri_string, imageBytes, server.getAccessJwt());
