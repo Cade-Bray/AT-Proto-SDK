@@ -7,15 +7,18 @@ import java.io.IOException;
 import java.net.http.HttpResponse;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Scanner;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Actor {
     private HashMap<String, Object> session_details = new HashMap<>();
     private String app_uri_base = "app.bsky";
+    private String[] languages = {"en"};
     public Server server;
 
     /**
@@ -36,6 +39,7 @@ public class Actor {
             System.out.println("2FA is required. Please enter your 2FA token: ");
             Scanner scanner = new Scanner(System.in);
             session = server.createSession(handle, password, scanner.nextLine());
+
             this.session_details = Parser.createSession200(session);
             scanner.close();
 
@@ -88,6 +92,26 @@ public class Actor {
     @SuppressWarnings("unused")
     public void setApp_uri_base(String app_uri_base) {
         this.app_uri_base = app_uri_base;
+    }
+
+    /**
+     * Getter for the languages.
+     *
+     * @return ArrayList<String> The languages set for posts.
+     */
+    @SuppressWarnings("unused")
+    public String[] getLanguages() {
+        return languages;
+    }
+
+    /**
+     * Setter for the languages.
+     *
+     * @param languages ArrayList<String> The languages set for posts.
+     */
+    @SuppressWarnings("unused")
+    public void setLanguages(String[] languages) {
+        this.languages = languages;
     }
 
     // **** GET REQUESTS BELOW ****
@@ -230,25 +254,38 @@ public class Actor {
      * @return An HttpResponse object containing the response from the server.
      */
     @SuppressWarnings("unused")
-    public HttpResponse<String> createRecord(String text) throws JsonProcessingException {
+    public ObjectNode createRecord(String text) throws JsonProcessingException {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         String formattedDateTime = ZonedDateTime.now().format(formatter);
         String uri_string = "com.atproto.repo.createRecord";
 
+        // Create the JSON object to be sent to the server.
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode record = mapper.createObjectNode();
 
+        // Set the values for the JSON object.
         record.put("repo", (String) session_details.get("did"));
         record.put("collection", app_uri_base + ".feed.post");
         record.set("record", mapper.createObjectNode()
                 .put("$type", app_uri_base + ".feed.post")
                 .put("createdAt", formattedDateTime)
                 .put("text", text)
-                // TODO: Currently only supports English. Allow for enumeration.
-                .put("langs", "en")
         );
 
-        return HTTP.POST(true ,uri_string, mapper.writeValueAsString(record), server.getAccessJwt());
+        // Add the languages to the JSON object.
+        ArrayNode langs = record.putArray("langs");
+        Arrays.stream(languages).forEach(langs::add);
+
+        // Send the POST request to the server.
+        HttpResponse<String> response = HTTP.POST(true ,uri_string, mapper.writeValueAsString(record),
+                server.getAccessJwt());
+
+        // Parse the response from the server.
+        assert response != null;
+        ObjectNode post = (ObjectNode) mapper.readTree(response.body());
+        post.put("status", response.statusCode());
+
+        return post;
     }
 
     /**
@@ -264,36 +301,54 @@ public class Actor {
      * @return An HttpResponse object containing the response from the server.
      */
     @SuppressWarnings("unused")
-    public HttpResponse<String> createRecord(String text, String imageFP, String alt) throws IOException {
+    public ObjectNode createRecord(String text, String imageFP, String alt) throws IOException {
+        // Create the formatted date time string.
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         String formattedDateTime = ZonedDateTime.now().format(formatter);
+
         String uri_string = "com.atproto.repo.createRecord";
-        HashMap<String, Object> blob = Parser.uploadBlob200(uploadBlob(imageFP));
+
+        // Upload the image to the server.
+        ObjectNode blob = uploadBlob(imageFP);
         File image = new File(imageFP);
         BufferedImage img = ImageIO.read(image);
         int width = img.getWidth();
         int height = img.getHeight();
 
+        // Create the JSON object to be sent to the server.
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode record = mapper.createObjectNode();
 
+        // Set the values for the JSON object.
         record.put("repo", (String) session_details.get("did"));
         record.put("collection", app_uri_base + ".feed.post");
         record.set("record", mapper.createObjectNode()
                 .put("$type", app_uri_base + ".feed.post")
                 .put("createdAt", formattedDateTime)
                 .put("text", text)
-                .put("langs", "en")
                 .set("image", mapper.createObjectNode()
-                        .put("$type", (String) blob.get("blob.$type"))
-                        .put("$link", (String) blob.get("blob.ref.$link"))
+                        .put("$type", blob.get("blob").get("$type").asText())
+                        .put("$link", blob.get("blob").get("ref").get("$link").asText())
                         .put("width", width)
                         .put("height", height)
                         .put("alt", alt)
                 )
         );
 
-        return HTTP.POST(true ,uri_string, mapper.writeValueAsString(record), server.getAccessJwt());
+        // Add the languages to the JSON object.
+        ArrayNode langs = record.putArray("langs");
+        Arrays.stream(languages).forEach(langs::add);
+
+        // Send the POST request to the server.
+        HttpResponse<String> response = HTTP.POST(true ,uri_string, mapper.writeValueAsString(record),
+                server.getAccessJwt());
+
+        // Parse the response from the server.
+        assert response != null;
+        ObjectNode post = (ObjectNode) mapper.readTree(response.body());
+        post.put("status", response.statusCode());
+
+        return post;
     }
 
     /**
@@ -316,7 +371,7 @@ public class Actor {
         return HTTP.POST(true ,uri_string, mapper.writeValueAsString(record), server.getAccessJwt());
     }
 
-    public HttpResponse<String> uploadBlob(String imageFP) {
+    public ObjectNode uploadBlob(String imageFP) throws JsonProcessingException {
         String uri_string = "com.atproto.repo.uploadBlob";
         byte[] imageBytes = null;
 
@@ -335,7 +390,13 @@ public class Actor {
             e.printStackTrace();
         }
 
-        return HTTP.POST(true ,uri_string, imageBytes, server.getAccessJwt());
+        HttpResponse<String> response = HTTP.POST(true ,uri_string, imageBytes, server.getAccessJwt());
+        assert response != null;
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode blob = (ObjectNode) mapper.readTree(response.body());
+        blob.put("status", response.statusCode());
+
+        return blob;
     }
 
    // **** END OF POST REQUESTS
@@ -343,7 +404,8 @@ public class Actor {
    // **** Main Testing ****
     public static void main(String[] args) throws IOException {
         Actor actor = new Actor(args[0], args[1]);
-        ObjectNode profile = actor.getProfile("cade.comp-sci.engineer");
-        System.out.println(profile.get("displayName"));
+        ObjectNode r = actor.createRecord("Testing the createRecord method for uploading images!", args[2],
+                "This is an alt text.");
+        System.out.println(r);
     }
 }
