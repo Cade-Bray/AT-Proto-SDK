@@ -123,6 +123,28 @@ public class HTTP {
         }
     }
 
+    public static HttpResponse<String> POST(boolean isPrivate, String uri_string, byte[] blob, String jwt) {
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request;
+
+            request = HttpRequest.newBuilder()
+                    .uri(new URI(uriConstructor(isPrivate, uri_string)))
+                    .header("Content-Type", "image/jpeg")
+                    .header("Authorization", "Bearer " + jwt)
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(blob))
+                    .build();
+
+            //TODO add a check for a valid response and throw if a bad response is received.
+
+            return client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) {
+            // TODO: Create robust logging.
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     public static String uriConstructor(boolean isPrivate, String endpoint) {
         if (isPrivate) {
             return private_uri + endpoint;

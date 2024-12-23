@@ -1,9 +1,17 @@
 package engineer.comp_sci;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.http.HttpResponse;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Scanner;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Actor {
     private HashMap<String, Object> session_details = new HashMap<>();
@@ -218,6 +226,50 @@ public class Actor {
     }
 
     /**
+     * This will create a post to the given actor instance. The post will be created in the actor's feed.
+     *
+     * @param text The text of the post.
+     *             The text of the post. This is the main content of the post. It can be up to 280 characters long.
+     *             The text can contain hashtags, mentions, and links. The text can also contain emojis.
+     *
+     * @see <a href="https://docs.bsky.app/docs/api/com-atproto-repo-create-record">API Documentation Link</a>
+     * @see <a href="https://docs.bsky.app/docs/advanced-guides/posts#post-record-structure">Post Record Structure</a>
+     *
+     * @return An HttpResponse object containing the response from the server.
+     */
+    public HttpResponse<String> createRecord(String text, String imageFP, String alt) throws IOException {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        String formattedDateTime = ZonedDateTime.now().format(formatter);
+        String uri_string = "com.atproto.repo.createRecord";
+        HashMap<String, Object> blob = Parser.uploadBlob200(uploadBlob(imageFP, alt));
+        File image = new File(imageFP);
+        BufferedImage img = ImageIO.read(image);
+        int width = img.getWidth();
+        int height = img.getHeight();
+
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode record = mapper.createObjectNode();
+
+        record.put("repo", (String) session_details.get("did"));
+        record.put("collection", app_uri_base + ".feed.post");
+        record.set("record", mapper.createObjectNode()
+                .put("$type", app_uri_base + ".feed.post")
+                .put("createdAt", formattedDateTime)
+                .put("text", text)
+                .put("langs", "en")
+                .set("image", mapper.createObjectNode()
+                        .put("$type", (String) blob.get("blob.$type"))
+                        .put("$link", (String) blob.get("blob.ref.$link"))
+                        .put("width", width)
+                        .put("height", height)
+                        .put("alt", alt)
+                )
+        );
+
+        return HTTP.POST(true ,uri_string, mapper.writeValueAsString(record), server.getAccessJwt());
+    }
+
+    /**
      * This will delete a post from the user's feed. It just requires the rkey of the post to be deleted.
      *
      * @see <a href="https://docs.bsky.app/docs/api/com-atproto-repo-delete-record">API Documentation Link</a>
@@ -234,11 +286,34 @@ public class Actor {
         return HTTP.POST(true ,uri_string, body, server.getAccessJwt());
     }
 
+    public HttpResponse<String> uploadBlob(String imageFP, String alt_text) throws FileNotFoundException {
+        String uri_string = "com.atproto.repo.uploadBlob";
+        byte[] imageBytes = null;
+
+        try {
+            File image = new File(imageFP);
+            FileInputStream imageStream = new FileInputStream(image);
+            imageBytes = new byte[(int) image.length()];
+
+            if (imageStream.read(imageBytes) > 1000000) {
+                throw new IndexOutOfBoundsException("File size is too large. Must be less than 1MB.");
+            }
+
+            imageStream.close();
+        } catch (Exception e) {
+            //TODO: Add logging
+            e.printStackTrace();
+        }
+
+        return HTTP.POST(true ,uri_string, imageBytes, server.getAccessJwt());
+    }
+
    // **** END OF POST REQUESTS
 
    // **** Main Testing ****
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         Actor actor = new Actor(args[0], args[1]);
-        actor.deleteRecord("");
+        HashMap<String, Object> r = Parser.uploadBlob200(actor.uploadBlob(args[2], "Testing!"));
+        actor.createRecord("This is a test post!", args[2], "Testing!");
     }
 }

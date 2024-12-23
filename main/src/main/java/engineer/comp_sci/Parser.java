@@ -127,4 +127,51 @@ public class Parser {
         response.put("commit", commit);
         return response;
     }
+
+    public static HashMap<String, Object> uploadBlob200(HttpResponse<String> session){
+        HashMap<String, Object> response = new HashMap<>();
+        HashMap<String, Object> blob = new HashMap<>();
+        HashMap<String, Object> ref = new HashMap<>();
+        String session_body = session.body();
+
+        //Parse ref
+        Pattern regex = Pattern.compile("\"\\$link\":\"\\S*?\"");
+        Matcher matcher = regex.matcher(session_body);
+        if (matcher.find()) {
+            String ref_link = matcher.group(0);
+            ref_link = ref_link.substring(9, ref_link.length() - 1);
+            ref.put("$link", ref_link);
+            blob.put("ref", ref);
+        }
+
+        //Parse $type
+        regex = Pattern.compile("\"\\$type\":\"\\S*?\"");
+        matcher = regex.matcher(session_body);
+        if (matcher.find()) {
+            String ref_link = matcher.group(0);
+            ref_link = ref_link.substring(9, ref_link.length() - 1);
+            blob.put("$type", ref_link);
+        }
+        response.put("blob", blob);
+
+        //Parse mimeType
+        regex = Pattern.compile("\"mimeType\":\"\\S*?\"");
+        matcher = regex.matcher(session_body);
+        if (matcher.find()) {
+            String mimeType = matcher.group(0);
+            mimeType = mimeType.substring(12, mimeType.length() - 1);
+            response.put("mimeType", mimeType);
+        }
+
+        //Parse size
+        regex = Pattern.compile("\"size\":\\d*");
+        matcher = regex.matcher(session_body);
+        if (matcher.find()) {
+            String size = matcher.group(0);
+            size = size.substring(7);
+            response.put("size", Integer.parseInt(size));
+        }
+
+        return response;
+    }
 }

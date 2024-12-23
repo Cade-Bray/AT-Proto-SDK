@@ -7,7 +7,7 @@ import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ParserTest {
+class createSession200Test {
     public static HttpResponse<String> session_body = new CustomHttpResponse(
             // This is a JSON string that represents a session object. This is currently (12/13/2024) the exact response
             // from the server but with fake data. This is a 200 response.
