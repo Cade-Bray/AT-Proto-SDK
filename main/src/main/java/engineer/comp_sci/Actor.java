@@ -3,13 +3,13 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.http.HttpResponse;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Scanner;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -57,6 +57,7 @@ public class Actor {
      * @param accessJwt String The accessJwt of the user.
      * @param refreshJwt String The refreshJwt of the user.
      */
+    @SuppressWarnings("unused")
     public Actor(String handle, String accessJwt, String refreshJwt) {
         //TODO: Allow for the creation of an Actor object with only the accessJwt and refreshJwt.
         // This will allow for the Actor object to be created without the need for a password.
@@ -73,6 +74,7 @@ public class Actor {
      *
      * @return String The did of the user.
      */
+    @SuppressWarnings("unused")
     public String getApp_uri_base() {
         return app_uri_base;
     }
@@ -83,6 +85,7 @@ public class Actor {
      *
      * @param app_uri_base String The app_uri_base of the user.
      */
+    @SuppressWarnings("unused")
     public void setApp_uri_base(String app_uri_base) {
         this.app_uri_base = app_uri_base;
     }
@@ -98,6 +101,7 @@ public class Actor {
      * @return Returns an array of preferences for the authenticated user. Check API documentation for what the JSON
      *          will include.
      */
+    @SuppressWarnings("unused")
     public HttpResponse<String> getPreferences() {
         //TODO requires auth token. See issue #4
         return null;
@@ -111,9 +115,14 @@ public class Actor {
      * @return An HttpResponse object containing the profile information of the specified actor.
      *         The response body is a JSON string.
      */
-   public HttpResponse<String> getProfile(String actor) {
+    @SuppressWarnings("unused")
+    public ObjectNode getProfile(String actor) throws JsonProcessingException {
        String uri_string = app_uri_base + ".actor.getProfile?actor=" + actor;
-       return HTTP.GET(false, uri_string);
+
+       HttpResponse<String> response = HTTP.GET(false, uri_string);
+       ObjectMapper mapper = new ObjectMapper();
+       assert response != null;
+       return (ObjectNode) mapper.readTree(response.body());
    }
 
     /**
@@ -125,7 +134,8 @@ public class Actor {
      * @return An HttpResponse object containing the profile information of the specified actors.
      *         The response body is a JSON string.
      */
-   public HttpResponse<String> getProfiles(String[] actors){
+   @SuppressWarnings("unused")
+    public HttpResponse<String> getProfiles(String[] actors){
        StringBuilder uri_string = new StringBuilder(app_uri_base + ".actor.getProfiles?");
 
        for (String actor : actors){
@@ -147,6 +157,7 @@ public class Actor {
      * @param limit is the integer of how many returns you want from the search. Must be 1 => and <= 100. Suggested 10.
      * @return An HTTP Response. The information is in the body as a string JSON. Refer to API doc link for specifics.
      */
+    @SuppressWarnings("unused")
     public HttpResponse<String> searchActorsTypeahead(String query, int limit){
 
         if (limit > 100 || limit < 1) {
@@ -168,6 +179,7 @@ public class Actor {
      * @param cursor TODO define cursor in parameter context
      * @return An HTTP Response. The information is in the body as a string JSON. Refer to API doc link for specifics.
      */
+    @SuppressWarnings("unused")
     public HttpResponse<String> searchActors(String query, int limit, String cursor){
         String uri_sb = app_uri_base + ".actor.searchActors?" + "q=" + query + "&limit=" + limit + "&cursor=" + cursor;
 
@@ -191,6 +203,7 @@ public class Actor {
      * @param cursor TODO Create definition for cursor.
      * @return An HttpResponse object containing the array of suggested actors.
      */
+    @SuppressWarnings("unused")
     public HttpResponse<String> getSuggestions(int limit, String cursor){
 
         return null;
@@ -208,21 +221,26 @@ public class Actor {
      *
      * @return An HttpResponse object containing the response from the server.
      */
-    public HttpResponse<String> createRecord(String text){
+    @SuppressWarnings("unused")
+    public HttpResponse<String> createRecord(String text) throws JsonProcessingException {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         String formattedDateTime = ZonedDateTime.now().format(formatter);
         String uri_string = "com.atproto.repo.createRecord";
-        String body = "{\n" +
-                "\"repo\": \"" + session_details.get("did") + "\"," +
-                "\"collection\": \"" + app_uri_base + ".feed.post\"," +
-                "\"record\": {" +
-                "\"$type\": \"" + app_uri_base + ".feed.post\"," +
-                "\"createdAt\": \"" + formattedDateTime + "\"," +
-                "\"text\": \"" + text + "\"," +
-                // TODO: Currently only supports English. Allow for enumeration.
-                "\"langs\": [\"en\"]}}";
 
-        return HTTP.POST(true ,uri_string, body, server.getAccessJwt());
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode record = mapper.createObjectNode();
+
+        record.put("repo", (String) session_details.get("did"));
+        record.put("collection", app_uri_base + ".feed.post");
+        record.set("record", mapper.createObjectNode()
+                .put("$type", app_uri_base + ".feed.post")
+                .put("createdAt", formattedDateTime)
+                .put("text", text)
+                // TODO: Currently only supports English. Allow for enumeration.
+                .put("langs", "en")
+        );
+
+        return HTTP.POST(true ,uri_string, mapper.writeValueAsString(record), server.getAccessJwt());
     }
 
     /**
@@ -237,11 +255,12 @@ public class Actor {
      *
      * @return An HttpResponse object containing the response from the server.
      */
+    @SuppressWarnings("unused")
     public HttpResponse<String> createRecord(String text, String imageFP, String alt) throws IOException {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         String formattedDateTime = ZonedDateTime.now().format(formatter);
         String uri_string = "com.atproto.repo.createRecord";
-        HashMap<String, Object> blob = Parser.uploadBlob200(uploadBlob(imageFP, alt));
+        HashMap<String, Object> blob = Parser.uploadBlob200(uploadBlob(imageFP));
         File image = new File(imageFP);
         BufferedImage img = ImageIO.read(image);
         int width = img.getWidth();
@@ -276,17 +295,20 @@ public class Actor {
      * @param rkey The rkey of the post to be deleted.
      * @return An HttpResponse object containing the response from the server.
      */
-    public HttpResponse<String> deleteRecord(String rkey){
+    public HttpResponse<String> deleteRecord(String rkey) throws JsonProcessingException {
         String uri_string = "com.atproto.repo.deleteRecord";
-        String body = "{\n" +
-                "\"collection\":\"" + app_uri_base + ".feed.post\"," +
-                "\"repo\":\"" + session_details.get("did") + "\"," +
-                "\"rkey\":\"" + rkey + "\"}";
 
-        return HTTP.POST(true ,uri_string, body, server.getAccessJwt());
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode record = mapper.createObjectNode();
+
+        record.put("collection", app_uri_base + ".feed.post");
+        record.put("repo", (String) session_details.get("did"));
+        record.put("rkey", rkey);
+
+        return HTTP.POST(true ,uri_string, mapper.writeValueAsString(record), server.getAccessJwt());
     }
 
-    public HttpResponse<String> uploadBlob(String imageFP, String alt_text) throws FileNotFoundException {
+    public HttpResponse<String> uploadBlob(String imageFP) {
         String uri_string = "com.atproto.repo.uploadBlob";
         byte[] imageBytes = null;
 
@@ -313,7 +335,7 @@ public class Actor {
    // **** Main Testing ****
     public static void main(String[] args) throws IOException {
         Actor actor = new Actor(args[0], args[1]);
-        HashMap<String, Object> r = Parser.uploadBlob200(actor.uploadBlob(args[2], "Testing!"));
+        HashMap<String, Object> r = Parser.uploadBlob200(actor.uploadBlob(args[2]));
         actor.createRecord("This is a test post!", args[2], "Testing!");
     }
 }
