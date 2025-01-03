@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+@SuppressWarnings("unused")
 public class Actor {
     private static final Logger logger = LogManager.getLogger(Actor.class);
     private ObjectNode session_details = new ObjectMapper().createObjectNode();
@@ -283,22 +284,23 @@ public class Actor {
     /**
      * This will create a post to the given actor instance. The post will be created in the actor's feed.
      *
-     * @param text The text of the post.
-     *             The text of the post. This is the main content of the post. It can be up to 280 characters long.
-     *             The text can contain hashtags, mentions, and links. The text can also contain emojis.
+     * @param text The text of the post. The text of the post. This is the main content of the post. It can be up to
+     *              280 characters long.
+     * @param imageFP The file path of the image to be uploaded.
+     * @param alt The alt text of the image.
      *
-     * @see <a href="https://docs.bsky.app/docs/api/com-atproto-repo-create-record">API Documentation Link</a>
-     * @see <a href="https://docs.bsky.app/docs/advanced-guides/posts#post-record-structure">Post Record Structure</a>
+     * @see <a href="https://docs.bsky.app/docs/api/com-atproto-repo-apply-writes">API Documentation Link</a>
+     * @see <a href="https://github.com/Cade-Bray/AT-Proto-SDK/wiki/Payload:-com.atproto.repo.applyWrites">Payload Structure</a>
      *
-     * @return An HttpResponse object containing the response from the server.
+     * @return An ObjectNode containing the response from the server.
      */
     @SuppressWarnings("unused")
-    public ObjectNode createRecord(String text, String imageFP, String alt) throws IOException {
+    public ObjectNode applyWrites(String text, String imageFP, String alt) throws IOException {
         // Create the formatted date time string.
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         String formattedDateTime = ZonedDateTime.now().format(formatter);
 
-        String uri_string = "com.atproto.repo.createRecord";
+        String uri_string = "com.atproto.repo.applyWrites";
 
         // Upload the image to the server.
         ObjectNode blob = uploadBlob(imageFP);
@@ -313,23 +315,63 @@ public class Actor {
 
         // Set the values for the JSON object.
         record.put("repo", session_details.get("did").asText());
-        record.put("collection", app_uri_base + ".feed.post");
-        record.set("record", mapper.createObjectNode()
-                .put("$type", app_uri_base + ".feed.post")
-                .put("createdAt", formattedDateTime)
-                .put("text", text)
-                .set("image", mapper.createObjectNode()
-                        .put("$type", blob.get("blob").get("$type").asText())
-                        .put("$link", blob.get("blob").get("ref").get("$link").asText())
-                        .put("width", width)
-                        .put("height", height)
-                        .put("alt", alt)
-                )
-        );
+        record.put("validate", true);
+
+        //Create writes object
+        ObjectNode writes = mapper.createObjectNode();
+
+        //Create write object
+        ObjectNode write = mapper.createObjectNode();
+        write.put("$type", uri_string + "#create");
+        write.put("collection", app_uri_base + ".feed.post");
+        //TODO placeholder for rkey
+        write.put("rkey", "TODO placeholder");
+
+        //Create value object
+        ObjectNode value = mapper.createObjectNode();
+        value.put("$type", app_uri_base + ".feed.post");
+        value.put("createdAt", formattedDateTime);
+        value.put("text", text);
+
+        //Create embed object
+        ObjectNode embed = mapper.createObjectNode();
+        embed.put("$type", "com.atproto.embed.images");
+
+        // Create images object
+        ObjectNode images = mapper.createObjectNode();
+        ObjectNode imageNode = mapper.createObjectNode();
+        imageNode.put("alt", alt);
+
+        // Create aspectRatio object
+        ObjectNode aspectRatio = mapper.createObjectNode();
+        aspectRatio.put("width", width);
+        aspectRatio.put("height", height);
+        imageNode.set("aspectRatio", aspectRatio);
+
+        // Create imageDetails object
+        ObjectNode imageDetails = mapper.createObjectNode();
+        imageDetails.put("$type", blob.get("blob").get("$type").asText());
+        imageDetails.put("mimeType", blob.get("blob").get("mimeType").asText());
+        imageDetails.put("size", blob.get("blob").get("size").asInt());
+
+        // Create ref object
+        ObjectNode ref = mapper.createObjectNode();
+        ref.put("$link", blob.get("blob").get("ref").get("$link").asText());
+
+        // Start nesting for better visualization of this JSON object see the java doc link above for payload structure.
+        imageDetails.set("ref", ref);
+        imageNode.set("image", imageDetails);
+        images.set("0", imageNode);
+        embed.set("images", images);
+        value.set("embed", embed);
 
         // Add the languages to the JSON object.
-        ArrayNode langs = record.putArray("langs");
+        ArrayNode langs = value.putArray("langs");
         Arrays.stream(languages).forEach(langs::add);
+
+        write.set("value", value);
+        writes.set("0", write);
+        record.set("writes", writes);
 
         // Send the POST request to the server.
         HttpResponse<String> response = HTTP.POST(true ,uri_string, mapper.writeValueAsString(record),
@@ -364,10 +406,22 @@ public class Actor {
         return HTTP.POST(true ,uri_string, mapper.writeValueAsString(record), server.getAccessJwt());
     }
 
+    /**
+     * Upload blob to the server. This is used to upload images to the server. This is not posting the image to the
+     * feed. This is just uploading the image to the server. The link it produces is what is used to post the image to
+     * the feed.
+     * @param imageFP The file path of the image to be uploaded.
+     * @return An ObjectNode containing the response from the server. This contains the link needed.
+     *
+     * @throws JsonProcessingException If there is an error parsing the JSON response from the server. Please report this
+     * error to the developers on the GitHub repository issues page.
+     */
     public ObjectNode uploadBlob(String imageFP) throws JsonProcessingException {
         String uri_string = "com.atproto.repo.uploadBlob";
         byte[] imageBytes = null;
 
+        // Read the image file into a byte array.
+        logger.info("Uploading image: {}", imageFP);
         try {
             File image = new File(imageFP);
             FileInputStream imageStream = new FileInputStream(image);
@@ -382,8 +436,11 @@ public class Actor {
             logger.error("Error uploading image: {}", e.getMessage());
         }
 
+        // Send the POST request to the server.
         HttpResponse<String> response = HTTP.POST(true ,uri_string, imageBytes, server.getAccessJwt());
         assert response != null;
+
+        // Parse the response from the server.
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode blob = (ObjectNode) mapper.readTree(response.body());
         blob.put("status", response.statusCode());
@@ -394,10 +451,7 @@ public class Actor {
    // **** END OF POST REQUESTS
 
    // **** Main Testing ****
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         Actor actor = new Actor(args[0], args[1]);
-        ObjectNode r = actor.createRecord("Testing the createRecord method for uploading images!", args[2],
-                "This is an alt text.");
-        System.out.println(r);
     }
 }
