@@ -69,7 +69,7 @@ public class Actor {
     /**
      * Getter for the app_uri_base class variable.
      *
-     * @return String The did of the user.
+     * @return String The app uri base.
      */
     @SuppressWarnings("unused")
     public String getApp_uri_base() {
