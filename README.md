@@ -1,7 +1,7 @@
 ![AT-Proto](.github/AT-Proto.png)
 
 # Current Version: 0.1-Alpha
-[![Lexicon Updater](https://github.com/Cade-Bray/AT-Proto-SDK/actions/workflows/update_lexicons.yaml/badge.svg)](https://github.com/Cade-Bray/AT-Proto-SDK/actions/workflows/update_lexicons.yaml)
+[![Lexicon Updater](https://github.com/Cade-Bray/AT-Proto-SDK/actions/workflows/Lexicon_Updater.yaml/badge.svg?branch=master)](https://github.com/Cade-Bray/AT-Proto-SDK/actions/workflows/Lexicon_Updater.yaml)
 
 # AT-Protocol Java SDK
 This is a Java SDK for the AT-Protocol, a decentralized protocol for social networking. It provides a simple interface for interacting with AT-Protocol servers, allowing you to build decentralized social applications.
