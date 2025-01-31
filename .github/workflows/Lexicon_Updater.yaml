@@ -26,7 +26,7 @@ jobs:
         run: |
             git pull
             git config --local user.name "Lexicon Updater"
-            git config --local user.email "bray.cade@gmail.com"
+            git config --local user.email "hiddenlearner@duck.com"
             git add .
             git commit -m "Update lexicons"
             git push --force origin master
