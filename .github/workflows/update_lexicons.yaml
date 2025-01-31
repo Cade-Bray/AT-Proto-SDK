@@ -12,11 +12,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Pull Bluesky AT Proto Repo
+      - name: Pull lexicons from atproto repo
         run: ./.scripts/pull_atproto.sh
 
-      - name: Pull lexicons from their directory
-        run: ./.scripts/pull_lexicons.sh
-
-      - name: Clean up environment
-        run: ./.scripts/clean_up.sh
+      - name: Commit changes
+        run: |
+            git config --local user.name "Lexicon Updater"
+            git config --local user.email "bray.cade@gmail.com"
+            git add .
+            git commit -m "Update lexicons"
+            git push
