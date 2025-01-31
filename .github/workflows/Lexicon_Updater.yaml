@@ -27,7 +27,11 @@ jobs:
             git config --local user.name "Lexicon Updater"
             git config --local user.email "hiddenlearner@duck.com"
             git add .
-            git diff-index --quiet HEAD || echo 'Changes: ${{steps.git_diff.outputs.has_changes}}'
+            if git diff-index --quiet HEAD; then
+              echo "::set-output name=has_changes::false"
+            else
+              echo "::set-output name=has_changes::true"
+            fi
             
       - name: Commit changes
         if: steps.git_diff.outputs.has_changes == 'true'
