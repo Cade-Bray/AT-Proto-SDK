@@ -1,6 +1,11 @@
 # Contributing Guidelines
 We welcome contributions to the AT-Protocol Java SDK! Here are some guidelines to help you get started:
 
+## Fork the Repo!
+- Unless you're a contributor we do not accept branches and or commits to the main repo. Instead fork the repo, make a branch on your repo, make your commits, and make a pull request back to the repo!
+- If you're a frequent contributor I will reach out to you to see if you'd like to be added as a contributor to our project!
+- Try checking out the (first-contributions)[https://github.com/firstcontributions/first-contributions] repo that will explain the general method to contributing to a open source project.
+
 ## Code Style
 - Formatting: Please adhere to the official Java code style guidelines.
 - Naming Conventions: Use clear and concise variable and method names.
