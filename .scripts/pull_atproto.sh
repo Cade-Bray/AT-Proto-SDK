@@ -27,5 +27,5 @@ rm "$OUTPUT_FILE"
 
 # Remove all contents except the lexicon folder of atproto
 ls
-mv ./atproto-main/lexicons ..
+mv ./atproto-main/lexicons ./lexicons/
 rm -rf atproto-main
