@@ -1,3 +1,5 @@
+![AT-Proto](.github/AT-Proto.png)
+
 # AT-Protocol Java SDK
 This is a Java SDK for the AT-Protocol, a decentralized protocol for social networking. It provides a simple interface for interacting with AT-Protocol servers, allowing you to build decentralized social applications.
 
