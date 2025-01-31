@@ -30,7 +30,7 @@ jobs:
             git diff-index --quiet HEAD || echo "New Lexicons Detected"
             
       - name: Commit changes
-        if: steps.git_diff.outputs.has_changes == 'has_changes'
+        if: steps.git_diff.outputs.has_changes == 'New Lexicons Detected'
         id: commit
         run: |
           git checkout -b update-lexicons-$(date +%Y%m%d%H%M%S)
@@ -39,14 +39,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push changes
-        if: steps.commit.outputs.has_changes == 'has_changes'
+        if: steps.commit.outputs.has_changes == 'New Lexicons Detected'
         run: |
           git push origin update-lexicons-$(date +%Y%m%d%H%M%S)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Pull Request
-        if: steps.commit.outputs.has_changes == 'has_changes'
+        if: steps.commit.outputs.has_changes == 'New Lexicons Detected'
         uses: peter-evans/create-pull-request@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
