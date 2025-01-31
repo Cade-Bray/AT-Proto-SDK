@@ -22,7 +22,7 @@ jobs:
 
       - name: Commit changes
         env:
-          GITHUB_TOKEN: ${{ secrets.Lexicon_Updater }}
+          GITHUB_TOKEN: ${{ secrets.LEXICON_UPDATER }}
         run: |
             git config --local user.name "Lexicon Updater"
             git config --local user.email "bray.cade@gmail.com"
