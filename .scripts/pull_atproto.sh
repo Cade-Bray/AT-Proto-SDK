@@ -1,4 +1,5 @@
 #!/bin/bash
+ls
 
 # Downloading the latest version of atproto from the main branch
 URL="https://github.com/bluesky-social/atproto/archive/refs/heads/main.zip"
@@ -25,5 +26,5 @@ unzip -o "$OUTPUT_FILE"
 rm "$OUTPUT_FILE"
 
 # Remove all contents except the lexicon folder of atproto
-mv atproto-main/lexicons ..
+mv ./atproto-main/lexicons ..
 rm -rf atproto-main
