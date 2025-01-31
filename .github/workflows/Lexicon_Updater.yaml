@@ -24,7 +24,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-            git pull
             git config --local user.name "Lexicon Updater"
             git config --local user.email "hiddenlearner@duck.com"
             git add .
