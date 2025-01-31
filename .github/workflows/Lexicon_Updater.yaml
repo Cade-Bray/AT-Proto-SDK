@@ -28,4 +28,4 @@ jobs:
             git config --local user.email "bray.cade@gmail.com"
             git add .
             git commit -m "Update lexicons"
-            git push
+            git push --force
