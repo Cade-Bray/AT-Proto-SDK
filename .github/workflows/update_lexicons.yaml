@@ -1,4 +1,4 @@
-name: update lexicons
+name: Lexicon Updater
 
 on:
   schedule:
