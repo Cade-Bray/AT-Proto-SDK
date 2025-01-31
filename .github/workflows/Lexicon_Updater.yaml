@@ -20,12 +20,37 @@ jobs:
       - name: Pull lexicons from atproto repo
         run: ./.scripts/pull_atproto.sh
 
-      - name: Commit changes
+      - name: Git Differences
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
             git config --local user.name "Lexicon Updater"
             git config --local user.email "hiddenlearner@duck.com"
             git add .
-            git commit -m "Update lexicons"
-            git push --force
+            git diff-index --quiet HEAD || echo "New Lexicons Detected"
+            
+      - name: Commit changes
+        if: steps.git_diff.outputs.has_changes == 'has_changes'
+        id: commit
+        run: |
+          git checkout -b update-lexicons-$(date +%Y%m%d%H%M%S)
+          git commit -m "Update lexicons"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push changes
+        if: steps.commit.outputs.has_changes == 'has_changes'
+        run: |
+          git push origin update-lexicons-$(date +%Y%m%d%H%M%S)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        if: steps.commit.outputs.has_changes == 'has_changes'
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: update-lexicons-$(date +%Y%m%d%H%M%S)
+          title: "Update lexicons"
+          body: "This is an automated PR. New Lexicons from Bluesky/atproto were detected."
+          labels: "automation"
