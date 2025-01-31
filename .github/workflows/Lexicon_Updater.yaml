@@ -14,7 +14,8 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Make pull_atproto.sh executable
-        run: chmod +x ./.scripts/pull_atproto.sh
+        run: |
+          chmod +x ./.scripts/pull_atproto.sh
 
       - name: Pull lexicons from atproto repo
         run: ./.scripts/pull_atproto.sh
