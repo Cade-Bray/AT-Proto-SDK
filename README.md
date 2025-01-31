@@ -1,13 +1,16 @@
 ![AT-Proto](.github/AT-Proto.png)
 
+# Current Version: 0.1-Alpha
+
 # AT-Protocol Java SDK
 This is a Java SDK for the AT-Protocol, a decentralized protocol for social networking. It provides a simple interface for interacting with AT-Protocol servers, allowing you to build decentralized social applications.
 
 ## Roadmap
-Currently our roadmap is being defined. That being said the first stage is to build out the API GET/POST requests and the methods will currently return a HTTPResponse. In later versions I intend to parse the responses so you will not need to to yourself. Before moving to this stage we need to build out all responses and junit test them. This is a beginning product that is still very experimental.  
+Refer to our open roadmap in the projects section. Items will be scheduled in iterations for official releases. Any item that doesn't get finished during an iteration may be put on the backlog. Anything put on the back log will get a 'help wanted' tag put onto it. Keep an eye out for items that have good first issue assigned to them.
 
 
 # Quick-start basics
+This section will get you up to speed on some basic functionality. For more information consider using the wiki or reaching out to a contributor while our docs are being constructed.
 
 ## Creating a session and making a post
 The Actor constructor has a built-in system for generating a session but if two factor authentication is enabled for the account it will require an input through the CLI currently. I recommend storing your handle and password in a seperate json file or passing it as enviroment arguments. The specific code below will post to the given account a "Hello World!" message. You may replace args[0] with your handle and args[1] with the password. 
