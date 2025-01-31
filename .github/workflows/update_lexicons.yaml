@@ -1,0 +1,22 @@
+name: update lexicons
+
+on:
+  schedule:
+  - cron: "0 1 * * *"
+
+jobs:
+  update-lexicons:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Pull Bluesky AT Proto Repo
+        run: ./.scripts/pull_atproto.sh
+
+      - name: Pull lexicons from their directory
+        run: ./.scripts/pull_lexicons.sh
+
+      - name: Clean up environment
+        run: ./.scripts/clean_up.sh
