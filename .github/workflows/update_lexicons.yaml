@@ -1,0 +1,24 @@
+name: update lexicons
+
+on:
+  schedule:
+  - cron: "0 1 * * *"
+
+jobs:
+  update-lexicons:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Pull lexicons from atproto repo
+        run: ./.scripts/pull_atproto.sh
+
+      - name: Commit changes
+        run: |
+            git config --local user.name "Lexicon Updater"
+            git config --local user.email "bray.cade@gmail.com"
+            git add .
+            git commit -m "Update lexicons"
+            git push
